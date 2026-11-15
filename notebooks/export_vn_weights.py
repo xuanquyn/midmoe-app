@@ -51,6 +51,15 @@ for seed in range(10):
     export_metrics.append({'seed': seed, 'epochs': len(hist), **m})
     print(f"seed={seed} epochs={len(hist)} SR={m['SR']:+.4f} nDCG@5={m['nDCG@5']:.4f}")
 
+# Per-seed test SR printed by the original Phase 7 run (cell 20, transfer_minimal frac=1.00; mean 0.0410 = paper
+# Table 10). Identical values => the retrained models reproduce the paper's models; small gaps are GPU
+# non-determinism; large gaps mean something differs (data, config, seed handling) -> report before deploying.
+PAPER_SR = [0.0326, 0.0402, -0.0080, -0.0130, 0.1232, 0.0420, 0.0238, 0.0773, 0.0008, 0.0916]
+print("\nseed | SR paper | SR export | diff")
+for row, ref in zip(export_metrics, PAPER_SR):
+    print(f"{row['seed']:4d} | {ref:+.4f}  | {row['SR']:+.4f}   | {row['SR'] - ref:+.4f}")
+print(f"mean | {np.mean(PAPER_SR):+.4f}  | {np.mean([r['SR'] for r in export_metrics]):+.4f}")
+
 ref_per_seed = np.stack(ref_per_seed)  # (10, T_test, 78)
 np.savez_compressed(f'{EXPORT_DIR}/vn_parity_ref.npz', per_seed=ref_per_seed,
                     window_end_date=vn_test_raw['window_end_date'], label_date=vn_test_raw['label_date'],

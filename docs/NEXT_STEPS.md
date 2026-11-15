@@ -29,6 +29,14 @@ Tất cả đã test trên dữ liệu demo tổng hợp và model khởi tạo 
 
 ## Bước 1 — Export weights từ Kaggle (M1.2) ⟵ quan trọng nhất
 
+Notebook `midmoe-vn-transfer` đã chạy nhưng **không lưu weights**: cell 20 train 150 model rồi chỉ giữ dự đoán
+(`vn_preds.npz`) và bảng kết quả (`*.csv`); model nằm trong RAM và mất khi session kết thúc. File `.ipynb` chỉ chứa
+code và phần in ra màn hình. Vì vậy phải train lại 10 model của cấu hình deploy (chỉ 10 lần thay vì 150, nhanh hơn
+nhiều so với cell 20).
+
+0. Trước khi chạy lại: vào tab **Output** của phiên bản notebook đã chạy trên Kaggle, tải `vn_preds.npz` (dùng để so
+   thứ hạng với paper). Nếu lần chạy đó không được *Save Version* thì file này không còn, có thể bỏ qua.
+
 1. Mở notebook `midmoe-vn-transfer` trên Kaggle, giữ nguyên các input `midmoe-vn-cube-build` và `midmoe-conv3d-weights`.
 2. Chạy các cell từ đầu **đến hết Phase 7 phần định nghĩa hàm** (cell 0–19). **Bỏ qua** cell 20 (vòng thí nghiệm
    3 cấu hình × 5 tỉ lệ × 10 seed) và các cell sau đó.
@@ -40,8 +48,11 @@ Tất cả đã test trên dữ liệu demo tổng hợp và model khởi tạo 
      chứa `clip_min`/`clip_max`/`mins`/`maxs`, rồi gửi tên file cho Claude (hoặc sửa biến `cands` trong cell).
    - Có file `icb_industry.csv` hoặc `*sector_map*` được copy. Nếu không có, gửi bảng mã → tên công ty → ngành ICB.
 5. Tải `/kaggle/working/midmoe_vn_artifacts.zip`, giải nén vào `artifacts/vn/` trong repo.
-6. (Nên làm) Nếu còn file `vn_preds.npz` từ lần chạy làm paper, chép vào `artifacts/vn/` để so thứ hạng.
-7. Chạy parity test và gửi kết quả cho Claude:
+6. Cuối output có bảng `seed | SR paper | SR export | diff` so với 10 giá trị SR của lần chạy làm paper (trung bình
+   0,0410). Trùng hoàn toàn: model train lại giống hệt paper. Lệch nhỏ: do GPU không tất định, chấp nhận được.
+   Lệch lớn: báo Claude trước khi deploy.
+7. Chép `vn_preds.npz` (bước 0) vào `artifacts/vn/` nếu có.
+8. Chạy parity test và gửi kết quả cho Claude:
    ```bash
    .venv/bin/python -m pytest tests/test_parity.py -s
    ```
