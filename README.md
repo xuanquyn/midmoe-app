@@ -135,5 +135,6 @@ cd web && npm run lint && npm run typecheck && npm run build
 ## Tài liệu
 
 - [PLAN.md](PLAN.md): spec, milestone, tiến độ
+- [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md): việc còn lại và hướng dẫn từng bước trước demo
 - [artifacts/README.md](artifacts/README.md): định dạng artifacts và cách export từ Kaggle
 - `MIDMoE.pdf`: paper draft
