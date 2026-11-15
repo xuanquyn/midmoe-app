@@ -37,7 +37,7 @@ và web. Kế hoạch chi tiết và tiến độ: [PLAN.md](PLAN.md).
 |---|---|
 | Mô hình (M1) | Đã đóng gói + test; **chờ chạy `notebooks/export_vn_weights.py` trên Kaggle** để có weights |
 | Pipeline (M2) | Chỉ báo xong; **chờ notebook `midmoe-vn-cube-build`** (crawl CafeF, PhoBERT, vnstock). `daily_job.run` chưa có |
-| Giải thích (M3) | Chưa làm (cần weights) |
+| Giải thích (M3), dựng cube (M2.5) | Xong, test trên model ngẫu nhiên; chờ weights thật để kiểm tra kết quả |
 | API (M4), trợ lý (M5), web (M6), Docker (M7.1) | Xong; đã test trên dữ liệu demo tổng hợp |
 
 Khi pipeline chưa có, scheduler vẫn chạy đúng lịch và ghi một lần chạy `failed` ("chưa được triển khai") để

@@ -131,7 +131,7 @@ midmoe-app/
 - [x] **M2.2** `midmoe/features.py`: tính 7 chỉ báo **y hệt** `add_indicators` trong notebook; `normalize(df, norm_params)` theo thứ tự winsorize → min-max → clip [0,1].
 - [ ] **M2.3** `pipeline/sources/cafef_src.py`: `fetch_news(ticker, date_from, date_to) -> list[{ticker,date,title,url,published_at}]`. Dùng lại logic crawl trong notebook `vn-cube-build`. Dedupe theo `(ticker, date, title)`. Gán ngày theo **đúng quy tắc** đã dùng khi build cube; nếu notebook không có quy tắc giờ thì dùng ngày lịch, giống paper.
 - [ ] **M2.4** `midmoe/news.py`: embed tiêu đề bằng PhoBERT, **cùng tokenizer, max_len, pooling** với `vn-cube-build`. Mean theo `(ticker, date)`. Mã không có tin thì `mask=0`, vector 0.
-- [ ] **M2.5** `midmoe/cube.py`: `build_inputs(as_of_date) -> (x(1,1,16,78,7), news_emb(1,78,768), news_mask(1,78))`. Lấy đúng 16 phiên giao dịch gần nhất, kết thúc tại `as_of_date`. Thiếu dữ liệu một mã thì forward-fill tối đa 3 phiên và log warning; nhiều hơn thì đánh dấu run `degraded`.
+- [x] **M2.5** `midmoe/cube.py`: `build_inputs(as_of_date) -> (x(1,1,16,78,7), news_emb(1,78,768), news_mask(1,78))`. Lấy đúng 16 phiên giao dịch gần nhất, kết thúc tại `as_of_date`. Thiếu dữ liệu một mã thì forward-fill tối đa 3 phiên và log warning; nhiều hơn thì đánh dấu run `degraded`.
 - [ ] **M2.6** `pipeline/daily_job.py`: fetch → features → news → cube → predict → explain (M3) → upsert DB → ghi `pipeline_runs`. Idempotent: chạy lại cùng ngày sẽ ghi đè, không nhân đôi.
 - [ ] **M2.7** `pipeline/backfill.py --from 2025-01-01 --to today`: chạy job cho từng ngày giao dịch để demo có lịch sử (năm 2025 là test, 2026 là "live").
 - [ ] **M2.8** Lên lịch: 16:30 Asia/Ho_Chi_Minh, T2–T6, bỏ qua ngày lễ (thị trường không có phiên nghĩa là vnstock không trả dòng mới, job kết thúc `skipped`).
@@ -142,20 +142,21 @@ midmoe-app/
 
 Paper (Table 8) cho thấy lợi thế đến từ **các nguồn thông tin và market cube**, không đến từ tham số do diffusion sinh ra. Vì vậy giải thích dựa trên đóng góp của từng nguồn.
 
-- [ ] **M3.1** `midmoe/explain.py::source_contributions`: với mỗi seed, chạy thêm 4 forward pass, mỗi lần tắt một nguồn:
+- [x] **M3.1** `midmoe/explain.py::source_contributions`: với mỗi seed, chạy thêm 4 forward pass, mỗi lần tắt một nguồn:
   - `news`: `news_mask = 0`
   - `market`: thay output `market_conv` bằng zeros
   - `graph`: `A_norm = I` (bỏ lan truyền theo ngành)
   - `timeseries`: thay output `ts_proj` bằng zeros
   
   Đóng góp = `score_full − score_ablated`, lấy trung bình 10 seed. Lưu cả `rank_full` và `rank_ablated` của từng nguồn.
-- [ ] **M3.2** `feature_snapshot`: giá trị raw của 7 chỉ báo hôm nay + percentile so với 78 mã. Thêm nhãn diễn giải: RSI > 70 là "quá mua", < 30 là "quá bán"; ret_5d nằm trong top 10%...
-- [ ] **M3.3** `sector_context`: hạng của mã trong ngành, top 3 mã cùng ngành.
-- [ ] **M3.4** Gắn tin: tiêu đề + url của tin trong ngày và 5 phiên trước.
-- [ ] **M3.5** `confidence`: `top5_votes/10` + `score_std`. Hiển thị dạng "8/10 mô hình đồng thuận".
-- [ ] Lưu toàn bộ vào bảng `explanations` dạng JSON (schema ở mục 5).
+- [x] **M3.2** `feature_snapshot`: giá trị raw của 7 chỉ báo hôm nay + percentile so với 78 mã. Thêm nhãn diễn giải: RSI > 70 là "quá mua", < 30 là "quá bán"; ret_5d nằm trong top 10%...
+- [x] **M3.3** `sector_context`: hạng của mã trong ngành, top 3 mã cùng ngành.
+- [x] **M3.4** Gắn tin: tiêu đề + url của tin trong ngày và 5 phiên trước.
+- [x] **M3.5** `confidence`: `top5_votes/10` + `score_std`. Hiển thị dạng "8/10 mô hình đồng thuận".
+- [ ] *(payload đã đúng schema mục 5; ghi vào DB thuộc job M2.6)* Lưu toàn bộ vào bảng `explanations` dạng JSON (schema ở mục 5).
 
 **Kiểm tra:** chạy cho 1 ngày, 78 mã < 30 s trên CPU; JSON validate bằng Pydantic.
+*(15/11, model ngẫu nhiên 78 mã × 10 seed, CPU: predict 0,83 s, explain 3,9 s; payload validate bằng `ExplanationPayload`.)*
 
 ### M4 — Backend API (17–20/11)
 
