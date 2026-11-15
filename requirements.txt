@@ -1,0 +1,29 @@
+# Python 3.11
+numpy>=1.26,<3
+pandas>=2.1
+scipy>=1.11
+torch>=2.2
+transformers>=4.40
+sentencepiece
+requests>=2.31
+beautifulsoup4>=4.12
+# vnstock: removed from PyPI (simple index 404, checked 2026-11-15). M2.1 must install the version used in
+# notebook midmoe-vn-cube-build from its new source (vnstock installer / GitHub) and pin it here.
+sqlalchemy>=2.0
+alembic>=1.13
+psycopg[binary]>=3.1
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+pydantic-settings>=2.2
+apscheduler>=3.10,<4
+# LLM providers (LLM_PROVIDER picks one at runtime)
+google-genai>=1.0
+openai>=1.60
+anthropic>=2.0
+python-dotenv>=1.0
+# dev
+pytest>=7.4
+httpx>=0.27
+ruff
+black

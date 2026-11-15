@@ -1,0 +1,28 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+.DS_Store
+~$*
+
+# model artifacts / raw data
+artifacts/**/*.pt
+artifacts/**/*.npz
+artifacts/**/*.npy
+data/
+assistant/eval/report*.json
+*.parquet
+
+# web
+web/node_modules/
+web/.next/
+
+# unpublished documents / Kaggle notebooks (kept out of the public repo)
+/MIDMoE.pdf
+web/public/MIDMoE.pdf
+*.ipynb
+*.docx
+/đề cương*.pdf
+*.db
