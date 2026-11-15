@@ -43,6 +43,121 @@ và web. Kế hoạch chi tiết và tiến độ: [PLAN.md](PLAN.md).
 Khi pipeline chưa có, scheduler vẫn chạy đúng lịch và ghi một lần chạy `failed` ("chưa được triển khai") để
 dashboard hiển thị trạng thái thật.
 
+## Giao diện web
+
+> Ảnh chụp ngày 15/11/2026 trên **dữ liệu demo tổng hợp** (`python -m backend.db.demo`: mã M00–M77, giá và điểm
+> sinh ngẫu nhiên). Các con số trong ảnh **không phải kết quả của mô hình**.
+
+Web gồm 4 trang dùng chung một khung: thanh trên cùng (điều hướng, chọn ngày, đổi giao diện sáng/tối), dòng cảnh
+báo "không phải lời khuyên đầu tư", và **panel trợ lý AI** cố định bên phải (thu gọn được; trên điện thoại là nút
+nổi mở ra toàn màn hình). Ngày đang xem nằm trên URL (`?date=`), nên chia sẻ link vẫn giữ đúng ngày; ngày không có
+phiên giao dịch tự lùi về phiên gần nhất trước đó.
+
+### Tổng quan (`/`)
+
+![Trang tổng quan](docs/screenshots/dashboard.png)
+
+- **5 thẻ top-5** của phiên: mã, ngành, hạng, thay đổi hạng so với phiên trước, **độ đồng thuận** ("2/10 mô hình
+  đồng thuận" = số mô hình trong ensemble xếp mã vào top 5), lý do một dòng, nút "Hỏi trợ lý".
+- **Bảng 78 mã**: sắp xếp theo từng cột, lọc theo ngành, tìm theo mã/tên.
+- **Trạng thái pipeline**: thời điểm cập nhật gần nhất và kết quả (thành công / thiếu dữ liệu / lỗi / không có phiên).
+
+### Chi tiết một mã (`/stocks/[mã]`)
+
+![Trang chi tiết mã](docs/screenshots/stock.png)
+
+- **Hạng và tóm tắt** lý do, hạng trong ngành, điểm và độ lệch giữa 10 mô hình.
+- **Biểu đồ nến + khối lượng** 120 phiên; rê chuột để xem giá mở/cao/thấp/đóng của từng phiên.
+- **Đóng góp của 4 nguồn thông tin** (thị trường, chuỗi giá, tin tức, quan hệ ngành): điểm của mã giảm bao nhiêu
+  khi tắt từng nguồn, trung bình 10 mô hình. Cột xanh đẩy mã lên, cột đỏ kéo xuống; rê chuột để xem hạng nếu bỏ nguồn đó.
+- **Lịch sử hạng** 30 phiên (hạng 1 ở trên cùng), **7 chỉ báo kỹ thuật** kèm percentile so với 78 mã và nhãn diễn
+  giải (quá mua / quá bán, top 10%...), **tin tức CafeF** liên quan.
+
+### Hiệu quả mô hình (`/performance`)
+
+![Trang hiệu quả](docs/screenshots/performance.png)
+
+- Lợi nhuận tích luỹ của **top 5 mô hình** so với **chọn ngẫu nhiên** và **VN-Index**, chia giai đoạn
+  *Test 2025* (năm kiểm thử trong paper) và *Live* (từ `LIVE_START`).
+- Bảng Sharpe theo ngày, tổng lợi nhuận, sụt giảm tối đa, nDCG@5; dữ liệu từng phiên mở được dạng bảng.
+- Theo quy ước của paper, lợi nhuận ngày là **tổng** lợi suất của 5 mã, nên VN-Index được nhân 5 để cùng thang.
+  Trang có đoạn giải thích kết quả và hạn chế (không có ý nghĩa thống kê, chưa tính phí, T+2, biên độ ±7%).
+
+### Giới thiệu (`/about`)
+
+Sơ đồ luồng xử lý của MIDMoE, dữ liệu, hạn chế và link tải paper ([ảnh](docs/screenshots/about.png)).
+
+### Giao diện tối và điện thoại
+
+| Giao diện tối | Điện thoại (390 px) |
+|---|---|
+| ![Giao diện tối](docs/screenshots/dark.png) | <img src="docs/screenshots/mobile.png" alt="Giao diện điện thoại" width="260"> |
+
+Đo bằng Lighthouse (mobile, bản build production chạy local, dữ liệu demo): performance 84–99, accessibility 100,
+best practices 100 trên cả 4 trang.
+
+## Trợ lý AI
+
+> Hai ảnh dưới đây chụp với một **LLM kịch bản** chỉ dùng để chụp ảnh (dự án chưa có API key): nó gọi **tool
+> thật** trên dữ liệu demo và trình bày lại kết quả. Khi chạy thật, câu trả lời do Gemini/OpenAI/Anthropic viết,
+> theo cùng các quy tắc bên dưới.
+
+| Hỏi top 5 hôm nay | Hỏi về mã đang xem (nút "Hỏi trợ lý về M16") |
+|---|---|
+| <img src="docs/screenshots/assistant-top5.png" alt="Trợ lý trả lời top 5" width="300"> | ![Trợ lý giải thích một mã](docs/screenshots/assistant-explain.png) |
+
+### Cách hoạt động
+
+```
+Người dùng ──► POST /api/chat {message, session_id, context: {ticker, date}}
+                 │
+                 ▼
+          assistant/agent.py ── system prompt (5 quy tắc + ngữ cảnh trang) + 20 tin nhắn gần nhất
+                 │
+                 ▼
+             LLM (Gemini / OpenAI / Anthropic)
+                 │  muốn tra cứu?
+                 ├──────────► tool ──► service layer ──► PostgreSQL     (lặp tối đa 6 vòng)
+                 │◄────────── kết quả JSON
+                 ▼
+          stream câu trả lời về web (SSE) + lưu chat_sessions / chat_messages
+```
+
+- **Chỉ trả lời bằng dữ liệu của hệ thống.** Trợ lý không tự biết số liệu: mọi con số phải lấy từ 7 tool, và các
+  tool gọi thẳng service layer của backend (không qua HTTP).
+
+  | Tool | Dùng khi người dùng hỏi |
+  |---|---|
+  | `get_recommendations` | top-k của một ngày, độ đồng thuận, lý do |
+  | `get_stock_explanation` | vì sao một mã có hạng như vậy (4 nguồn, chỉ báo, ngành, tin) |
+  | `get_stock_prices` | giá, khối lượng, RSI của N phiên gần nhất |
+  | `get_stock_news` | tin tức CafeF của một mã |
+  | `compare_stocks` | so sánh 2–5 mã trong cùng ngày |
+  | `get_model_performance` | Sharpe, lợi nhuận, sụt giảm của năm 2025 hoặc giai đoạn live |
+  | `get_model_info` | mô hình, dữ liệu, kết quả trong paper, hạn chế |
+
+- **Hiểu ngữ cảnh trang.** Web gửi kèm mã và ngày đang xem, nên câu như "mã này thì sao?" hay "hôm đó top 3 là
+  gì?" được hiểu đúng. Dòng "Đang xem: M16 · 26/10/2026" trên panel cho biết ngữ cảnh hiện tại.
+- **Quy tắc bắt buộc** (trong [assistant/prompts.py](assistant/prompts.py)):
+  1. Mọi con số, lý do phải lấy từ kết quả tool; không có dữ liệu thì nói không có.
+  2. Không dự đoán giá, không hứa lợi nhuận, không nói "nên mua/bán"; luôn nhắc đây là thông tin tham khảo.
+  3. Khi được hỏi độ tin cậy: nói rõ mô hình chưa vượt ngẫu nhiên có ý nghĩa thống kê, chưa tính phí, turnover
+     cao, chưa mô hình hoá T+2 và biên độ ±7%.
+  4. Giải thích theo thứ tự: hạng + độ đồng thuận → nguồn đóng góp lớn nhất → chỉ báo nổi bật → tin liên quan (có link).
+  5. Không nhắc tham số nội bộ (SSAM, DiT...) trừ khi được hỏi về kiến trúc.
+- **Mã ngoài danh sách 78 mã** (ví dụ AAPL): tool báo lỗi và trợ lý nói rõ mã không được theo dõi.
+- **Giao diện chat**: chữ hiện dần (streaming), dòng "Đang lấy danh sách khuyến nghị…" khi tool đang chạy, câu hỏi
+  gợi ý theo trang, nút dừng, nút cuộc trò chuyện mới; lịch sử giữ lại khi tải lại trang.
+- **Đổi nhà cung cấp LLM** bằng `LLM_PROVIDER` và `LLM_API_KEY` trong `.env`, không cần sửa code.
+
+### Đánh giá
+
+[assistant/eval/questions.jsonl](assistant/eval/questions.jsonl) có 50 câu (khuyến nghị, giải thích, so sánh, chỉ
+báo, tin tức, hiệu quả, câu phải từ chối như "mai giá bao nhiêu / có nên all-in", mã ngoài danh sách, câu dựa vào
+ngữ cảnh trang). `python -m assistant.eval.run` tự chấm: số liệu trong câu trả lời có khớp kết quả tool không, câu
+cần từ chối có từ chối không, thời gian ra chữ đầu tiên. Ngưỡng đạt theo PLAN: ≥ 95% số liệu khớp, 100% từ chối
+đúng chỗ, chữ đầu tiên < 3 giây. **Chưa chạy với LLM thật** (cần API key và dữ liệu đã backfill).
+
 ## Chạy bằng Docker Compose
 
 Yêu cầu: Docker 24+ với Compose v2, khoảng 4 GB RAM trống.
