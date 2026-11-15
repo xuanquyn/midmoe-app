@@ -23,7 +23,8 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 DEFAULT_MODELS = {
-    "gemini": "gemini-flash-latest",
+    # gemini-flash-latest -> 404 and gemini-2.5-flash is closed to new users (checked 2026-11-15)
+    "gemini": "gemini-3.5-flash",
     "openai": "gpt-4.1-mini",
     "anthropic": "claude-opus-5-5",
 }
@@ -294,8 +295,12 @@ class GeminiClient(LLMClient):
 
         self._types = types
         self._errors = errors
+        # Few SDK retries: a 429 on the free tier is usually a per-DAY quota, so long backoff only delays the error.
         self.client = genai.Client(
-            api_key=api_key or None, http_options=types.HttpOptions(timeout=int(REQUEST_TIMEOUT_S * 1000))
+            api_key=api_key or None,
+            http_options=types.HttpOptions(
+                timeout=int(REQUEST_TIMEOUT_S * 1000), retry_options=types.HttpRetryOptions(attempts=2)
+            ),
         )
 
     def _contents(self, messages: list[dict]) -> list:
@@ -364,7 +369,15 @@ class GeminiClient(LLMClient):
                 raise LLMError("Trợ lý đang quá tải (giới hạn API), vui lòng thử lại sau ít phút.") from exc
             if code in (401, 403):
                 raise LLMError("Khoá API của trợ lý không hợp lệ.") from exc
+            if code in (503, 504):
+                raise LLMError("Mô hình ngôn ngữ đang quá tải, vui lòng thử lại sau ít phút.") from exc
             raise LLMError(f"Lỗi từ nhà cung cấp LLM ({code}).") from exc
+        except (TimeoutError, OSError, ConnectionError) as exc:
+            raise LLMError("Không kết nối được tới nhà cung cấp LLM.") from exc
+        except Exception as exc:  # transport errors from the SDK's HTTP client (e.g. read timeouts)
+            if type(exc).__module__.split(".")[0] in ("httpx", "httpx2", "httpcore", "requests", "urllib3"):
+                raise LLMError("Không kết nối được tới nhà cung cấp LLM (hết thời gian chờ).") from exc
+            raise
         raw = types.Content(role="model", parts=all_parts) if all_parts else None
         yield TurnEnd(text="".join(text_parts), tool_calls=tool_calls, raw=raw, stop_reason=str(finish) if finish else None)
 

@@ -120,7 +120,7 @@ Nếu không thuê VPS: chạy `docker compose up -d` trên một máy luôn b�
 |---|---|---|
 | Parity mô hình | `pytest tests/test_parity.py -s` | lệch < 1e-4 |
 | Backfill so với paper | (sau M2.7) so điểm trong DB với `vn_preds.npz` năm 2025 | ghi lại mức lệch |
-| Eval trợ lý | `.venv/bin/python -m assistant.eval.run` (~50 lượt gọi LLM) | ≥ 95% số liệu khớp, 100% từ chối đúng |
+| Eval trợ lý | `.venv/bin/python -m assistant.eval.run --sleep 20` (~50 câu; `--sleep` tránh giới hạn free tier) | ≥ 95% số liệu khớp, 100% từ chối đúng |
 | Pipeline | xem `pipeline_runs` hoặc dòng trạng thái trên dashboard 18–20/11 | 3 phiên `success` |
 | Web | Lighthouse trên URL đã deploy | performance ≥ 80 |
 | UX | ≥ 10 người làm 5 task ở PLAN §7, chấm SUS | SUS ≥ 68 |

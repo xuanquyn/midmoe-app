@@ -229,7 +229,7 @@ cd web && npm run lint && npm run typecheck && npm run build
 |---|---|
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Tài khoản PostgreSQL (Compose tự ghép `DATABASE_URL`) |
 | `DATABASE_URL` | Chỉ cho chạy local, ví dụ `sqlite:///./midmoe.db` |
-| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_MODEL` | `gemini` (mặc định), `openai`, `anthropic`; để trống model = mặc định của provider |
+| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_MODEL` | `gemini` (mặc định, model `gemini-3.5-flash`), `openai`, `anthropic`; để trống model = mặc định của provider |
 | `ARTIFACT_DIR` | Thư mục weights + tham số (Compose: `/app/artifacts/vn`) |
 | `LIVE_START` | Ngày bắt đầu giai đoạn "live" (mặc định 2026-01-01) |
 | `TZ` | `Asia/Ho_Chi_Minh` |

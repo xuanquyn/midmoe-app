@@ -160,6 +160,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--model")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--only", help="comma-separated question ids")
+    ap.add_argument("--sleep", type=float, default=0.0, help="seconds between questions (free-tier rate limits)")
     args = ap.parse_args(argv)
 
     s = get_settings()
@@ -179,7 +180,9 @@ def main(argv: list[str] | None = None) -> int:
     results = []
     with get_sessionmaker()() as db:
         ph = placeholders(db)
-        for q in questions:
+        for i, q in enumerate(questions):
+            if i and args.sleep:
+                time.sleep(args.sleep)
             q = fill(q, ph)
             r = run_one(db, llm, q)
             results.append(r)
