@@ -222,11 +222,11 @@ Paper (Table 8) cho thấy lợi thế đến từ **các nguồn thông tin và
 
 ### M7 — Tích hợp & deploy (22–23/11)
 
-- [ ] **M7.1** `docker-compose.yml`: `db` (postgres:16), `api`, `scheduler` (dùng chung image với api), `web`. Healthcheck cho từng service.
-- [ ] **M7.2** `.env.example`: `DATABASE_URL`, `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `ARTIFACT_DIR`, `TZ=Asia/Ho_Chi_Minh`, `NEXT_PUBLIC_API_URL`.
+- [x] **M7.1** `docker-compose.yml`: `db` (postgres:16), `api`, `scheduler` (dùng chung image với api), `web`. Healthcheck cho từng service.
+- [x] **M7.2** `.env.example`: `DATABASE_URL`, `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `ARTIFACT_DIR`, `TZ=Asia/Ho_Chi_Minh`, `NEXT_PUBLIC_API_URL`.
 - [ ] **M7.3** Deploy lên VPS / Railway / Render (D4). Chạy backfill trên môi trường deploy, bật scheduler.
 - [ ] **M7.4** Theo dõi 3 phiên liên tiếp chạy thành công trước buổi demo.
-- [ ] **M7.5** README: cách chạy local (`docker compose up`), cách backfill, kiến trúc.
+- [x] **M7.5** README: cách chạy local (`docker compose up`), cách backfill, kiến trúc.
 
 ---
 
