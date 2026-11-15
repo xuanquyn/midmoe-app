@@ -88,7 +88,8 @@ Mỗi câu hỏi tốn 2–4 request, nên chỉ đủ khoảng 5–10 câu/ngà
 Cần làm một trong hai:
 
 - **Bật thanh toán** cho project của key trong Google AI Studio (*Settings → Billing*, lên Tier 1). Model
-  `gemini-3.5-flash` có giá thấp; eval + demo ước chừng vài chục nghìn đồng. Giữ nguyên key, không đổi code.
+  `gemini-3.5-flash` thuộc nhóm model giá thấp; xem bảng giá hiện tại trong AI Studio trước khi bật và đặt
+  giới hạn chi tiêu (budget alert). Giữ nguyên key, không đổi code.
 - Hoặc chuyển sang OpenAI / Anthropic (trả phí) bằng cách đổi `LLM_PROVIDER` và `LLM_API_KEY` trong `.env`.
 
 Model mặc định là `gemini-3.5-flash`: `gemini-flash-latest` báo 404, `gemini-2.5-flash` không mở cho người dùng mới,
