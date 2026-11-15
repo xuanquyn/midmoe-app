@@ -1,0 +1,107 @@
+# MIDMoE app: db (PostgreSQL 16), api (FastAPI), scheduler (daily pipeline), web (Next.js).
+#   cp .env.example .env   # then set POSTGRES_PASSWORD, LLM_API_KEY, public URLs
+#   docker compose up -d --build
+# See README.md for backfill and deployment notes.
+
+name: midmoe
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-midmoe}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-midmoe}
+  ARTIFACT_DIR: /app/artifacts/vn
+  TZ: ${TZ:-Asia/Ho_Chi_Minh}
+  LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_MODEL: ${LLM_MODEL:-}
+  LIVE_START: ${LIVE_START:-2026-01-01}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-midmoe}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-midmoe}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    image: midmoe-app:latest
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      API_WORKERS: ${API_WORKERS:-2}
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+      - hf-cache:/app/.cache/huggingface
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health', timeout=3).status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  scheduler:
+    image: midmoe-app:latest # built by the api service
+    restart: unless-stopped
+    command: ["python", "-m", "pipeline.scheduler"]
+    environment:
+      <<: *app-env
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+      - hf-cache:/app/.cache/huggingface
+    depends_on:
+      api:
+        condition: service_healthy # api runs the migrations
+    healthcheck:
+      # heartbeat file touched every minute by the scheduler process
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,sys,time; p='/tmp/midmoe-scheduler-heartbeat'; sys.exit(0 if os.path.exists(p) and time.time()-os.path.getmtime(p) < 150 else 1)"
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_LIVE_START: ${LIVE_START:-2026-01-01}
+    image: midmoe-web:latest
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  pgdata:
+  hf-cache:
