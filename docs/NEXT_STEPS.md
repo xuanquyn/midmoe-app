@@ -9,7 +9,7 @@ Demo vào thứ Hai 23/11. PLAN (M7.4) yêu cầu **3 phiên liên tiếp chạy
 
 | Ngày | Việc | Ai |
 |---|---|---|
-| **16/11 (CN)** | Chạy cell export trên Kaggle (bước 1), gửi notebook `midmoe-vn-cube-build` (bước 2), lấy API key LLM (bước 3) | Nhóm |
+| **16/11 (CN)** | Chạy cell export trên Kaggle (bước 1), gửi notebook `midmoe-vn-cube-build` (bước 2), bật thanh toán cho key Gemini (bước 3) | Nhóm |
 | 16–17/11 | Viết vnstock/CafeF/PhoBERT, job hằng ngày, backfill (M2.1–M2.8); chạy parity test | Claude, khi có đầu vào |
 | 17/11 | Thuê VPS, deploy (bước 5), chạy backfill 2025 → nay, chạy eval trợ lý | Nhóm + Claude |
 | **18–20/11** | Theo dõi 3 phiên lúc 16:30 (M7.4) | Nhóm |
@@ -83,8 +83,16 @@ Mặc định dùng **Gemini** vì có free tier:
    ```
 3. Không gửi key lên GitHub hay vào chat nhóm công khai (`.env` đã được bỏ qua trong git).
 
-Free tier có giới hạn số request/phút. Nếu khi demo bị báo "quá tải", có thể chuyển sang OpenAI hoặc Anthropic
-(trả phí) bằng cách đổi `LLM_PROVIDER` và `LLM_API_KEY`.
+**Đã có key (15/11), nhưng free tier chỉ cho 20 request/ngày cho mỗi model** (đã kiểm tra bằng thông báo lỗi 429).
+Mỗi câu hỏi tốn 2–4 request, nên chỉ đủ khoảng 5–10 câu/ngày: không đủ cho eval 50 câu, test UX và demo.
+Cần làm một trong hai:
+
+- **Bật thanh toán** cho project của key trong Google AI Studio (*Settings → Billing*, lên Tier 1). Model
+  `gemini-3.5-flash` có giá thấp; eval + demo ước chừng vài chục nghìn đồng. Giữ nguyên key, không đổi code.
+- Hoặc chuyển sang OpenAI / Anthropic (trả phí) bằng cách đổi `LLM_PROVIDER` và `LLM_API_KEY` trong `.env`.
+
+Model mặc định là `gemini-3.5-flash`: `gemini-flash-latest` báo 404, `gemini-2.5-flash` không mở cho người dùng mới,
+`gemini-3.8-flash` đang quá tải (504) tại thời điểm thử.
 
 ## Bước 4 — Hỏi giảng viên (quyết định D6)
 
